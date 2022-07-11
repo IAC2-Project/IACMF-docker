@@ -1,0 +1,95 @@
+version: '3'
+services:
+  container:
+    image: opentosca/container:latest
+    ports:
+      - '1337:1337'
+      - '1883:1883' # MQTT
+      - '8081-8087:8081-8087'
+    environment:
+      CONTAINER_HOSTNAME: ${PUBLIC_HOSTNAME}
+      ENGINE_IA_HOSTNAME: engine-ia-jdk8
+      ENGINE_IA_PORT: 8080
+      ENGINE_IA_JAVA17_HOSTNAME: engine-ia-jdk17
+      ENGINE_IA_JAVA17_PORT: 8080
+      ENGINE_PLAN_BPEL_HOSTNAME: engine-plan-bpel
+      ENGINE_PLAN_BPMN_HOSTNAME: engine-plan-bpmn
+      ENGINE_PLAN_BPMN_PORT: 8080
+      CONTAINER_DEPLOYMENT_TESTS: 'false'
+    networks:
+      - opentosca
+  ui:
+    image: opentosca/ui:latest
+    environment:
+     API_ENDPOINT_HOST: ${PUBLIC_HOSTNAME}
+     API_ENDPOINT_PORT: 1337
+     WINERY_HOST: ${PUBLIC_HOSTNAME}
+     WINERY_PORT: 8080
+    ports:
+      - '8088:8080'
+    networks:
+      - opentosca
+  bowie:
+    image: opentosca/bowie:latest
+    ports:
+      - '4242:80'
+    networks:
+      - opentosca 
+  engine-plan-bpel:
+    image: opentosca/ode:latest
+    ports:
+      - '9763:9763' # http
+    networks:
+      - opentosca
+  engine-plan-bpmn:
+    image: opentosca/camunda-bpmn:latest
+    ports:
+      - '8092:8080'
+    networks:
+      - opentosca
+  engine-ia-jdk8:
+    image: opentosca/engine-ia:latest-jdk8
+    ports:
+      - '8090:8080'
+    networks:
+      - opentosca
+  engine-ia-jdk17:
+    image: opentosca/engine-ia:latest-jdk17
+    ports:
+      - '8093:8080'
+    networks:
+      - opentosca
+  winery:
+    image: opentosca/winery:latest
+    environment:
+      WINERY_HOSTNAME: ${PUBLIC_HOSTNAME}
+      WORKFLOWMODELER_HOSTNAME: ${PUBLIC_HOSTNAME}
+      TOPOLOGYMODELER_HOSTNAME: ${PUBLIC_HOSTNAME}
+      CONTAINER_HOSTNAME: ${PUBLIC_HOSTNAME}
+      WINERY_REPOSITORY_URL: https://github.com/OpenTOSCA/tosca-definitions-example-applications
+    ports:
+      - '8080:8080'
+    networks:
+      - opentosca
+  dind:
+    image: docker:20.10-dind
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=
+    networks:
+      - opentosca
+    ports: 
+      - '2222:2375'
+      - '9990-9999:9990-9999'
+      - '9990-9999:9990-9999/udp'
+  proxy:
+    build: proxy
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - '80:80'
+    networks:
+      - opentosca
+networks:
+  opentosca:
+    driver: bridge
